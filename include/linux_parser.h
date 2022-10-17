@@ -15,7 +15,7 @@ const std::string kCpuinfoFilename{"/cpuinfo"};
 const std::string kStatusFilename{"/status"};
 const std::string kStatFilePath{"/proc/stat"};
 const std::string kUptimeFilePath{"/proc/uptime"};
-const std::string kMeminfoFilename{"/meminfo"};
+const std::string kMeminfoFilePath{"/proc/meminfo"};
 const std::string kVersionFilename{"/version"};
 const std::string kOSPath{"/etc/os-release"};
 const std::string kPasswordPath{"/etc/passwd"};

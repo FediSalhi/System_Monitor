@@ -68,10 +68,40 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
-// TODO: Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() { return 0.0; }
+// DONE (FEDI): Read and return the system memory utilization
+float LinuxParser::MemoryUtilization() { 
+  std::ifstream meminfo_fs(kMeminfoFilePath);
+  string line;
+  string key;
+  string value;
+  string memtotal;
+  string memfree;
+  float memtotal_f = 0.0;
+  float memfree_f = 0.0;
+  if (meminfo_fs.is_open())
+  {
+    while (getline(meminfo_fs, line)) {
+      std::replace(line.begin(), line.end(), ':', ' ');
+      std::istringstream line_fs(line);
+      line_fs >> key >> value;
+      if (key == "MemTotal") {
+        memtotal = value;
+        memtotal_f = stof(memtotal);
+      } else  if (key == "MemFree") {
+        memfree = value;
+        memfree_f = stof(memfree);
+        break;
+      }
+    }
+  } else {
+    std::cout << "Error reading file: " + kMeminfoFilePath << std::endl;
+    exit(-1);
+  }
+  
+  return (memtotal_f - memfree_f)/memtotal_f;
+}
 
-// TODO: Read and return the system uptime
+// DONE (FEdi): Read and return the system uptime
 long LinuxParser::UpTime() {
   std::ifstream uptime_fs(kUptimeFilePath);
   string line;
@@ -89,18 +119,80 @@ long LinuxParser::UpTime() {
   return stol(uptime);
 }
 
-// TODO: Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() { return 0; }
+// DONE (Fedi): Read and return the number of jiffies for the system
+long LinuxParser::Jiffies() { return ActiveJiffies() + IdleJiffies(); }
 
 // TODO: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::ActiveJiffies(int pid [[maybe_unused]]) { return 0; }
 
-// TODO: Read and return the number of active jiffies for the system
-long LinuxParser::ActiveJiffies() { return 0; }
+// DONE (fedi): Read and return the number of active jiffies for the system
+long LinuxParser::ActiveJiffies() { 
+  // nonIdle = user + nice + system + irq + softirq + steal
+  std::ifstream stat_fs(kStatFilePath);
+  string line;
+  vector<string> values;
+  string value;
+  long user = 0;
+  long nice = 0;
+  long system = 0;
+  long irq = 0;
+  long softirq = 0;
+  long steal = 0;
+  long total_non_idle = 0;
+  if (stat_fs.is_open()) {
+    while(getline(stat_fs, line)) {
+      if(line.find("cpu ") != string::npos) {
+        break;
+      }
+    }
+    std::istringstream line_ss(line);
+    while (line_ss) {
+      line_ss >> value;
+      values.emplace_back(value);
+    }
+    user = stol(values[CPUStates::kUser_ + 1]);
+    nice = stol(values[CPUStates::kNice_ + 1]);
+    system = stol(values[CPUStates::kSystem_ + 1]);
+    irq = stol(values[CPUStates::kIRQ_ + 1]);
+    softirq = stol(values[CPUStates::kSoftIRQ_ + 1]);
+    steal = stol(values[CPUStates::kSteal_ + 1]);
+    total_non_idle = user + nice + system + irq + softirq + steal;
+  } else {
+    std::cout << "Error reading file: " + kStatFilePath << std::endl;
+    exit(-1);
+  }
+  return total_non_idle; }
 
-// TODO: Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
+// DONE (fedi): Read and return the number of idle jiffies for the system
+long LinuxParser::IdleJiffies() { 
+  // idle = idle + iowait
+  std::ifstream stat_fs(kStatFilePath);
+  string line;
+  vector<string> values;
+  string value;
+  long idle = 0;
+  long iowait = 0;
+  long total_idle = 0;
+  if (stat_fs.is_open()) {
+    while(getline(stat_fs, line)) {
+      if(line.find("cpu ") != string::npos) {
+        break;
+      }
+    }
+    std::istringstream line_ss(line);
+    while (line_ss) {
+      line_ss >> value;
+      values.emplace_back(value);
+    }
+    idle = stol(values[CPUStates::kIdle_ + 1]);
+    iowait = stol(values[CPUStates::kIOwait_ + 1]);
+    total_idle = idle + iowait;
+  } else {
+    std::cout << "Error reading file: " + kStatFilePath << std::endl;
+    exit(-1);
+  }
+  return total_idle; }
 
 // TODO: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() { return {}; }
