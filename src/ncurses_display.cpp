@@ -1,12 +1,5 @@
-#include <curses.h>
-#include <chrono>
-#include <string>
-#include <thread>
-#include <vector>
 
-#include "format.h"
 #include "ncurses_display.h"
-#include "system.h"
 
 using std::string;
 using std::to_string;

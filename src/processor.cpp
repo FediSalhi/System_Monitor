@@ -1,7 +1,5 @@
 #include "processor.h"
 
-
-
 Processor::Processor() : idle_jiffies(LinuxParser::IdleJiffies()), active_jiffies(LinuxParser::ActiveJiffies()) {}
 
 void Processor::ActiveJiffies(long active_jiffies) { this->active_jiffies = active_jiffies; } 
@@ -12,15 +10,14 @@ long Processor::ActiveJiffies() { return active_jiffies; }
 
 long Processor::IdleJiffies() { return idle_jiffies; }
 
-// DONE (Fedi): Return the aggregate CPU utilization
 float Processor::Utilization() {
-    float utilization = 0.0;
+    float utilization{0.0};
 
     // calculate delta jiffies (delta time = 1s)
     long d_idle = LinuxParser::IdleJiffies() - IdleJiffies();
     long d_active = LinuxParser::ActiveJiffies() - ActiveJiffies(); 
 
-    if (d_idle + d_active) // prevent dividing by zero
+    if (d_idle + d_active) // prevents dividing by zero
     {
         utilization = (float)d_active / ((float)d_active + (float)d_idle);
     }

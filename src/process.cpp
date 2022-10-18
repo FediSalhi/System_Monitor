@@ -1,33 +1,60 @@
-#include <unistd.h>
-#include <cctype>
-#include <sstream>
-#include <string>
-#include <vector>
-
 #include "process.h"
 
 using std::string;
 using std::to_string;
 using std::vector;
 
-// TODO: Return this process's ID
-int Process::Pid() { return 0; }
+Process::Process(int pid) : pid_(pid) {
+    Ram(LinuxParser::Ram(pid_));
+    User(LinuxParser::User(pid_));
+    RunTime(LinuxParser::ActiveJiffies(pid)/sysconf(_SC_CLK_TCK));
+    UpTime(LinuxParser::UpTime(pid_));
+    CpuUtilization(CalculateCpuUtilization(pid_));
+    Command(LinuxParser::Command(pid_));
+}
 
-// TODO: Return this process's CPU utilization
-float Process::CpuUtilization() { return 0; }
+float Process::CalculateCpuUtilization(int pid) {
+    float utilization{0.0};
+    long current_runtime{0};
+    long current_uptime{0};
 
-// TODO: Return the command that generated this process
-string Process::Command() { return string(); }
+    current_runtime = LinuxParser::ActiveJiffies(pid)/sysconf(_SC_CLK_TCK);
+    current_uptime = LinuxParser::UpTime(pid);
 
-// TODO: Return this process's memory utilization
-string Process::Ram() { return string(); }
+    // process utilization = total run time / uptime
+    if (current_uptime)
+    {
+        utilization = (float)current_runtime / (float)current_uptime;
+    }
+    return utilization;
+}
 
-// TODO: Return the user (name) that generated this process
-string Process::User() { return string(); }
+int Process::Pid() { return pid_ ; }
 
-// TODO: Return the age of this process (in seconds)
-long int Process::UpTime() { return 0; }
+float Process::CpuUtilization() { return cpu_utilization_; }
 
-// TODO: Overload the "less than" comparison operator for Process objects
-// REMOVE: [[maybe_unused]] once you define the function
-bool Process::operator<(Process const& a[[maybe_unused]]) const { return true; }
+string Process::Command() { return command_; }
+
+string Process::Ram() { return ram_; }
+
+string Process::User() { return user_; }
+
+long int Process::UpTime() { return uptime_; }
+
+void Process::Pid(int pid) { pid_ = pid;}
+   
+void Process::User(std::string user) { user_ = user; }
+
+void Process::Command(std::string command) { command_ = command; }
+
+void Process::CpuUtilization(float cpu_utilization) { cpu_utilization_ = cpu_utilization; }
+
+void Process::Ram(std::string ram) { ram_ = ram; }
+
+void Process::UpTime(long int uptime) { uptime_ = uptime; }
+
+void Process::RunTime(long runtime) { runtime_ = runtime; }
+
+bool Process::operator<(Process const& a) const {     
+    return this->cpu_utilization_ < a.cpu_utilization_; 
+}
