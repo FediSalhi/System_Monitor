@@ -10,9 +10,8 @@ class Processor {
   void ActiveJiffies(long active_jiffies);
   long IdleJiffies();
   long ActiveJiffies();
-  float Utilization();  // DONE (Fedi): See src/processor.cpp
+  float Utilization();
 
-  // DONE (Fedi): Declare any necessary private members
  private:
  long idle_jiffies{0};
  long active_jiffies{0};

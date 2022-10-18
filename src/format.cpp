@@ -1,10 +1,7 @@
-#include <string>
-
 #include "format.h"
 
 using std::string;
 
-// DONE (Fedi): Complete this helper function
 string Format::ElapsedTime(long seconds) { 
     string formatted_output{""};
 
@@ -31,7 +28,7 @@ string Format::ElapsedTime(long seconds) {
     } else {
         seconds_str = std::to_string(sec);
     }
-    formatted_output += hours_str + ':' + minutes_str + ':' + seconds_str; 
+    formatted_output = hours_str + ':' + minutes_str + ':' + seconds_str; 
 
     return formatted_output; 
     }
