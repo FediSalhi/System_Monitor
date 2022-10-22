@@ -24,6 +24,12 @@ const std::string kVersionFilename{"/version"};
 const std::string kOSPath{"/etc/os-release"};
 const std::string kPasswordPath{"/etc/passwd"};
 
+// generic key-value
+template<typename T>
+void ExtractValue(const std::string& key, T& value, const std::string& filename);
+
+void ReadAllValues(std::vector<std::string>& values, const std::string& filename);
+
 // System
 float MemoryUtilization();
 long UpTime();

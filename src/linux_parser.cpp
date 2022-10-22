@@ -5,25 +5,54 @@ using std::string;
 using std::to_string;
 using std::vector;
 
-string LinuxParser::OperatingSystem() {
-  string line;
-  string key;
-  string value;
-  std::ifstream filestream(kOSPath);
+template<typename T>
+void LinuxParser::ExtractValue(const std::string& key, T& value, const std::string& filename) {
+  std::ifstream filestream(filename);
+  std::string line;
+  std::string key_tmp;
+  T value_tmp;
   if (filestream.is_open()) {
-    while (std::getline(filestream, line)) {
-      std::replace(line.begin(), line.end(), ' ', '_');
+    while(getline(filestream, line)) {
+      if (key == "PRETTY_NAME") { std::replace(line.begin(), line.end(), ' ', '_'); }
+      else if (key == "procs_running") {}
+      else { std::replace(line.begin(), line.end(), '_', ' '); }
       std::replace(line.begin(), line.end(), '=', ' ');
       std::replace(line.begin(), line.end(), '"', ' ');
-      std::istringstream linestream(line);
-      while (linestream >> key >> value) {
-        if (key == "PRETTY_NAME") {
-          std::replace(value.begin(), value.end(), '_', ' ');
-          return value;
+      std::replace(line.begin(), line.end(), ':', ' ');
+      std::istringstream line_ss(line);
+      if (line_ss) {
+        line_ss >> key_tmp >> value_tmp;
+        if (key_tmp == key) {
+          value = value_tmp;
+          break;
         }
       }
     }
+    filestream.close();
   }
+}
+
+void LinuxParser::ReadAllValues(std::vector<std::string>& values, const std::string& filename) {
+  std::ifstream filestream(filename);
+  std::string line;
+  std::string value;
+  if(filestream.is_open()) {
+    getline(filestream, line);
+    if (!line.empty()) {
+      std::istringstream line_ss(line);
+      while(line_ss) {
+        line_ss >> value;
+        values.emplace_back(value);
+      }
+    }
+    filestream.close();
+  }
+}
+
+string LinuxParser::OperatingSystem() {
+  string value;
+  ExtractValue<std::string>(std::string("PRETTY_NAME"), value, kOSPath);
+  std::replace(value.begin(), value.end(), '_', ' ');
   return value;
 }
 
@@ -60,30 +89,12 @@ vector<int> LinuxParser::Pids() {
 }
 
 float LinuxParser::MemoryUtilization() { 
-  std::ifstream meminfo_fs(kMeminfoFilePath);
-  string line;
-  string key;
-  string value;
-  string memtotal;
-  string memfree;
   float memtotal_f{0.0};
   float memfree_f{0.0};
-  if (meminfo_fs.is_open())
-  {
-    while (getline(meminfo_fs, line)) {
-      std::replace(line.begin(), line.end(), ':', ' ');
-      std::istringstream line_fs(line);
-      line_fs >> key >> value;
-      if (key == "MemTotal") {
-        memtotal = value;
-        memtotal_f = stof(memtotal);
-      } else  if (key == "MemFree") {
-        memfree = value;
-        memfree_f = stof(memfree);
-        break;
-      }
-    }
-  }
+
+  ExtractValue<float>(std::string("MemTotal"), memtotal_f, kMeminfoFilePath);
+  ExtractValue<float>(std::string("MemFree"), memfree_f, kMeminfoFilePath);
+
   return (memtotal_f - memfree_f)/memtotal_f;
 }
 
@@ -106,29 +117,19 @@ long LinuxParser::UpTime() {
 long LinuxParser::Jiffies() { return ActiveJiffies() + IdleJiffies(); }
 
 long LinuxParser::ActiveJiffies(int pid) { 
-  std::ifstream stat_fs(kProcDirectory + to_string(pid) + kStatFilename);
-  string line;
   vector<string> values;
-  string value;
   long utime{0};            //cpu time spent in user mode (in clock ticks)
   long stime{0};            //cpu time spent in kernel model (int clock ticks)
   long cutime{0};           //Waited-for children's CPU time spent in user code (in clock ticks)
   long cstime{0};           //Waited-for children's CPU time spent in kernel code (in clock ticks)
   long total_non_idle{0};
 
-  if (stat_fs.is_open()) {
-    if(getline(stat_fs, line)) {
-      std::istringstream line_ss(line);
-      while (line_ss) {
-        line_ss >> value;
-        values.emplace_back(value);
-      }
-    }
+  ReadAllValues(values, kProcDirectory + to_string(pid) + kStatFilename);
+  if (!values.empty()) {
     utime = stol(values[UTIME_IDX]);
     stime = stol(values[STIME_IDX]);
     cutime = stol(values[CUTIME_IDX]);
     cstime = stol(values[CSTIME_IDX]);
-
     #ifdef INCLUDE_CHILDREN_PROCESS_TIME_CPU_UTILIZATION
     total_non_idle = utime + stime + cutime + cstime;
     #else
@@ -203,42 +204,14 @@ long LinuxParser::IdleJiffies() {
   }
 
 int LinuxParser::TotalProcesses() {
-  std::ifstream stat_fs(kStatFilePath);
-  string line;
-  string key;
-  string value;
   int processes{0};
-
-  if (stat_fs.is_open()) {
-    while (getline(stat_fs, line)) {
-      std::istringstream line_ss(line);
-      line_ss >> key >> value;
-      if (key == "processes") {
-        break;
-      }
-    }
-    processes = stoi(value);
-  }
+  ExtractValue<int>(std::string("processes"), processes, kStatFilePath);
   return processes;
 }
 
 int LinuxParser::RunningProcesses() {
-  std::ifstream stat_fs(kStatFilePath);
-  string line;
-  string key;
-  string value;
   int processes{0};
-
-  if (stat_fs.is_open()) {
-    while (getline(stat_fs, line)) {
-      std::istringstream line_ss(line);
-      line_ss >> key >> value;
-      if (key == "procs_running") {
-        break;
-      }
-    }
-    processes = stoi(value);
-  }
+  ExtractValue<int>(std::string("procs_running"), processes, kStatFilePath);
   return processes;
 }
 
@@ -255,48 +228,17 @@ string LinuxParser::Command(int pid) {
 }
 
 string LinuxParser::Ram(int pid) { 
-  std::ifstream status_fs(kProcDirectory + to_string(pid) + kStatusFilename);
-  string line;
-  string key;
-  string value;
-  string mem_utilization;
-  int mem_utilization_mb{0};
-
-  if(status_fs.is_open()) {
-    while(getline(status_fs, line)) {
-      std::replace(line.begin(), line.end(), ':', ' ');
-      std::istringstream line_ss(line);
-      line_ss >> key >> value;
-      if (key == "VmSize") {
-        mem_utilization = value;
-          // converting to MB
-        mem_utilization_mb = stoi(mem_utilization)/1000;
-        break;
-      }
-    }
-  }
+  int mem_utilization_kb;
+  int mem_utilization_mb;
+  ExtractValue<int>(std::string("VmSize"), mem_utilization_kb, kProcDirectory + to_string(pid) + kStatusFilename);
+  mem_utilization_mb = mem_utilization_kb/1000;
 return to_string(mem_utilization_mb); 
 }
 
 string LinuxParser::Uid(int pid) { 
-  std::ifstream status_fs(kProcDirectory + to_string(pid) + kStatusFilename);
-  string line;
-  string key;
   string value;
-  string uid;
-
-  if(status_fs.is_open()) {
-    while(getline(status_fs, line)) {
-      std::replace(line.begin(), line.end(), ':', ' ');
-      std::istringstream line_ss(line);
-      line_ss >> key >> value;
-      if (key == "Uid") {
-        uid = value;
-        break;
-      }
-    }
-  } 
-  return uid; 
+  ExtractValue<std::string>(std::string("Uid"), value, kProcDirectory + to_string(pid) + kStatusFilename);
+  return value; 
 }
 
 string LinuxParser::User(int pid){ 
@@ -319,23 +261,16 @@ string LinuxParser::User(int pid){
 }
 
 long LinuxParser::UpTime(int pid) { 
-  std::ifstream stat_fs(kProcDirectory + to_string(pid) + kStatFilename);
-  string line;
-  string value;
   vector<string> values;
   long starttime{0};
   long uptime{0};
 
-  if(stat_fs.is_open()) {
-    if(getline(stat_fs, line)) {
-      std::istringstream line_ss(line);
-      while (line_ss) {
-        line_ss >> value;
-        values.emplace_back(value);
-      }
-    }
+  ReadAllValues(values, kProcDirectory + to_string(pid) + kStatFilename);
+  if (!values.empty()) {
     starttime = stol(values[STARTTIME_IDX])/sysconf(_SC_CLK_TCK);
     uptime = UpTime() - starttime;
   }
 return uptime;
 }
+
+

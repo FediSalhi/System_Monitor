@@ -66,6 +66,7 @@ The executable will be placed in the `build` directory. From within `build`, you
 - use ... at the end of commands that exceed 50 characters.
 - use const string for token (VmSize, MemFree ...).
 - increase the number of processes. PS: make it defined by the user.
+- use move semantics
 
 
 
