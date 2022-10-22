@@ -52,6 +52,25 @@ The executable will be placed in the `build` directory. From within `build`, you
     ./monitor
 ```
 
+## TODO:
+- add const to member functions.
+- add tests.
+- add all cpu cores utilizations.
+- implement LinuxParser::Pids() with filesystem.
+- define generic functions in the LinuxParser namespace using templates.
+- check all variable names and make sure that only one naming convention is used for all of them.
+- it is recommended to close open files in cpp, although they are automatically closed at the end of scope. Good practice.
+- replace VmSize by VmRSS. VmSize gives the size of the virtual memory. VmRSS gives the exact physical memory.
+- using namespace std is not recommended. You may have the same variable names in your code.
+- x.emplace_back(1) will call X(int) constructor --> you don't need to create object before that. Update processes_emplace_back
+- use ... at the end of commands that exceed 50 characters.
+- use const string for token (VmSize, MemFree ...).
+- increase the number of processes. PS: make it defined by the user.
+
+
+
+
+
 ## Authors
 
 * **Fedi Salhi** [FediSalhi](https://www.linkedin.com/in/fedisalhi/)
