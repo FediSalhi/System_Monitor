@@ -46,7 +46,7 @@ From within the `build` directory, run `cmake` and `make` as follows:
     cmake ..
     make
 ```
-## Running
+## Run
 The executable will be placed in the `build` directory. From within `build`, you can run the project as follows:
 ```
     ./monitor
