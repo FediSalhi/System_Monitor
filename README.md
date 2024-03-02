@@ -36,8 +36,8 @@ The project relies on [ncurses](https://www.gnu.org/software/ncurses/), a librar
 sudo apt install libncurses5-dev libncursesw5-dev
 ```
 
-## Compiling
-To compile the project, first, create a `build` directory and change to that directory:
+## Build
+To Build the project, first, create a `build` directory and change to that directory:
 ```
     mkdir build && cd build
 ```
